@@ -6,7 +6,9 @@ import pandas_datareader.data as web
 from chart_plotter import ChartPlotter
 from calculator import Calculator
 import warnings
+
 warnings.filterwarnings('ignore')
+
 
 class MonteCarloEstimator:
     def __init__(self, stockList, mc_sims, T, initial_portfolio, days_back):
@@ -17,12 +19,9 @@ class MonteCarloEstimator:
         self.days_back = days_back
         self.get_time()
         self.__numberOfPortfolios = T
-        # self.get_data()
-        # self.simulate()
-        # self.plot_simulation()
 
     def get_data(self):
-        self.stockData = web.get_data_stooq(self.stockList,self.startDate,self.endDate)
+        self.stockData = web.get_data_stooq(self.stockList, self.startDate, self.endDate)
         self.stockData = self.stockData['Close']
         self.returns = self.stockData.pct_change()
         self.meanReturns = self.returns.mean()
@@ -68,7 +67,8 @@ class MonteCarloEstimator:
             Z = np.random.normal(size=(self.T, len(self.weights)))
             L = np.linalg.cholesky(self.covMatrix)
             self.dailyReturns = self.meanM + np.inner(L, Z)
-            self.portfolio_sims[:, m] = np.cumprod(np.inner(self.weights, self.dailyReturns.T) + 1) * self.initial_portfolio
+            self.portfolio_sims[:, m] = np.cumprod(
+                np.inner(self.weights, self.dailyReturns.T) + 1) * self.initial_portfolio
 
     def generate_portfolios(self, returns, covariance, risk_free_rate):
         portfolios_allocations_df = pd.DataFrame({'Symbol': returns.index, 'MeanReturn': returns.values})
@@ -107,7 +107,6 @@ class MonteCarloEstimator:
         # Calculate Sharpe ratio of portfolio
         sharpe_ratio = Calculator.calculate_sharpe_ratio(risk, expected_returns, risk_free_rate)
 
-
         portfolio_data = allocations
         portfolio_data = np.append(portfolio_data, expected_returns)
         portfolio_data = np.append(portfolio_data, risk)
@@ -126,31 +125,3 @@ class MonteCarloEstimator:
         allocations /= sum(allocations)
         return allocations
 
-
-if __name__ == '__main__':
-    stockList = ['BABA.US','NIO.US','TWTR.US','GDX.US','700.HK','3799.HK']
-    # stockList = ['BABA.US', 'NIO.US']
-    mc_sims = 100
-    T = 100
-    initial_portfolio = 10000
-    days_back = 365*3
-    m = MonteCarloEstimator(stockList, mc_sims, T, initial_portfolio, days_back)
-
-
-    data = m.new_get_data()
-    returns = Calculator.get_returns(data)
-    expected_returns = Calculator.get_expectedreturns(returns)
-    covariance = Calculator.get_covariance(returns)
-
-    cp = ChartPlotter()
-    cp.plot_prices(data)
-    cp.plot_returns(returns)
-    cp.plot_correlation_matrix(covariance)
-
-    portfolios_allocations_df = m.generate_portfolios(expected_returns, covariance, 0)
-    portfolio_risk_return_ratio_df = Calculator.map_to_risk_return_ratios(portfolios_allocations_df)
-    cp.plot_portfolios(portfolio_risk_return_ratio_df)
-
-
-    plt.show()
-    print('Okay')

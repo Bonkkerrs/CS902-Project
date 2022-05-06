@@ -1,8 +1,5 @@
-import datetime as dt
-import matplotlib.pyplot as plt
-import pandas as pd
 import numpy as np
-import pandas_datareader.data as web
+import pandas as pd
 from functools import reduce
 
 
@@ -13,11 +10,11 @@ class Calculator:
 
     @staticmethod
     def get_expectedreturns(returns):
-            return returns.mean() * 252
+        return returns.mean() * 252
 
     @staticmethod
     def get_covariance(returns):
-            return returns.cov() * 252
+        return returns.cov() * 252
 
     @staticmethod
     def calculate_sharpe_ratio(risk, returns, risk_free_rate):
