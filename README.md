@@ -1,7 +1,7 @@
 # CS902-Project
 
-最终项目文件：Project Report -> codes
-项目结构：
+### 最终项目文件：Project Report -> codes
+### 项目结构：
 ```
   codes
     |_____ main.py
@@ -13,5 +13,4 @@
               |_____ stock_returns.png
               |_____ monte_carlo_returns.png
               |_____ monte_carlo_portfolios.png
-              
 ```
