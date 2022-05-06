@@ -7,15 +7,20 @@ from calculator import Calculator
 class ChartPlotter:
     def plot_prices(self, closing_prices):
         ax = plt.gca()
+        fig = plt.figure()
         columns = [c for c in closing_prices.columns if c not in 'Date']
         closing_prices.plot(kind='line',use_index=True,y=columns,ax=ax, title='Asset (Stock) Prices')
         plt.show()
+        #
+        # ax.get_figure().savefig('1.png')
+        return ax
 
     def plot_returns(self, returns):
         ax = plt.gca()
         columns = [c for c in returns.columns if c not in 'Date']
         returns.plot(kind='line', use_index=True, y=columns, ax=ax, title='Asset (Stock) Returns')
         plt.show()
+        return ax
 
     def plot_correlation_matrix(self, df):
         sns.heatmap(df,cmap='Blues', annot=True)
@@ -23,7 +28,7 @@ class ChartPlotter:
 
     def plot_portfolios(self, df):
         # find min Volatility & max sharpe values in the dataframe (df)
-
+        fig = plt.figure()
         max_sharpe_ratio = Calculator.get_max_sharpe_ratio(df)
         min_risk = Calculator.get_min_risk(df)
 
@@ -49,6 +54,7 @@ class ChartPlotter:
         print(x,y,name)
         print(type(x),type(y),type(name))
         self.plot_single_point(x, y, 'Portfolio: ' + name, 'black')
+        return fig
 
     def plot_single_point(self, x, y, title, colour):
         plt.scatter(x=x, y=y, c=colour, marker='D', s=200)

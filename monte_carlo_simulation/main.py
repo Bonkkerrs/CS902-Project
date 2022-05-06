@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from tkinter.filedialog import askdirectory
 from datetime import datetime
 import time
+import os
 
 class MyStockApp:
     def __init__(self):
@@ -83,7 +84,7 @@ class MyStockApp:
         # Row_6
         self.log_label = Label(self.root, text='系统日志：')
         self.log_label.grid(row=6)
-        self.log = Text(self.root,width=50,height=10)
+        self.log = Text(self.root,width=50,height=10,highlightthickness=0)
         self.log.grid(row=7,column=0,columnspan=4,padx=10,pady=5,sticky=N)
 
         # self.system_info_label = Label(self.root, text='系统消息')
@@ -101,9 +102,9 @@ class MyStockApp:
         # self.tfield.grid(row=0,column=5,rowspan=9,padx=5)
 
 
-
+        self.logger('Hello World! ')
         self.validation = False
-
+        self.save_fig = False
         self.auto_fillin()
         self.root.mainloop()
 
@@ -112,16 +113,24 @@ class MyStockApp:
 
     def selectPath(self):
         path_ = askdirectory()
-        self.output_directory.delete(0,END)
-        self.output_directory.insert(0,path_)
+        if path_ == '':
+            self.logger('路径不能为空！')
+        else:
+            self.output_directory.delete(0,END)
+            self.output_directory.insert(0,path_)
+            self.directory = path_
+            self.logger(f'已设置输出路径为: {path_}')
+
 
     def save_pic(self):
         if self.var1.get() == 0:
             self.output_directory.configure(state='disabled')
             self.output_directory_select.configure(state='disabled')
+            self.save_fig = False
         else:
             self.output_directory.configure(state='normal')
             self.output_directory_select.configure(state='normal')
+            self.save_fig = True
 
 
     def auto_fillin(self):
@@ -174,9 +183,12 @@ class MyStockApp:
 
     def plot_price(self):
         if self.validation:
-            self.cp.plot_prices(self.data)
-            plt.show()
+            ax = self.cp.plot_prices(self.data)
             self.logger(f'已输出近{self.days_back.get()}天的股价趋势图')
+            if self.save_fig:
+                fname = os.path.join(self.directory, 'stock_prices.png')
+                ax.get_figure().savefig(fname, dpi=300)
+                self.logger(f"已保存stock_prices.png至指定路径")
         else:
             self.logger('参数不全或尚未查询！')
 
@@ -185,9 +197,12 @@ class MyStockApp:
 
     def plot_returns(self):
         if self.validation:
-            self.cp.plot_returns(self.returns)
-            plt.show()
+            ax = self.cp.plot_returns(self.returns)
             self.logger(f'已输出近{self.days_back.get()}天的收益率')
+            if self.save_fig:
+                fname = os.path.join(self.directory, 'stock_returns.png')
+                ax.get_figure().savefig(fname, dpi=300)
+                self.logger(f"已保存stock_returns.png至指定路径")
         else:
             self.logger('参数不全或尚未查询！')
 
@@ -197,9 +212,13 @@ class MyStockApp:
                 self.logger('股票数小于3只，预测情况可能不佳。')
             self.portfolios_allocations_df = self.m.generate_portfolios(self.expected_returns, self.covariance, 0)
             self.portfolio_risk_return_ratio_df = Calculator.map_to_risk_return_ratios(self.portfolios_allocations_df)
-            self.cp.plot_portfolios(self.portfolio_risk_return_ratio_df)
+            fig = self.cp.plot_portfolios(self.portfolio_risk_return_ratio_df)
             plt.show()
             self.logger(f'已输出Monte Carlo不同投资组合的收益-风险图')
+            if self.save_fig:
+                fname = os.path.join(self.directory, 'monte_carlo_portfolios.png')
+                fig.savefig(fname, dpi=300)
+                self.logger(f"已保存monte_carlo_portfolios.png至指定路径")
         else:
             self.logger('参数不全或尚未查询！')
 
@@ -207,11 +226,15 @@ class MyStockApp:
         if self.validation:
             self.m.get_data()
             self.m.simulate()
-            self.m.plot_simulation()
-            plt.show()
+            fig = self.m.plot_simulation()
             self.logger(f'已输出Monte Carlo不同投资组合的未来价值')
+            if self.save_fig:
+                fname = os.path.join(self.directory, 'monte_carlo_returns.png')
+                fig.savefig(fname, dpi=300)
+                self.logger(f"已保存monte_carlo_returns.png至指定路径")
         else:
             self.logger('参数不全或尚未查询！')
+
 
 if __name__ == '__main__':
     MyStockApp()

@@ -47,11 +47,13 @@ class MonteCarloEstimator:
         self.startDate = self.endDate - dt.timedelta(days=self.days_back)
 
     def plot_simulation(self):
+        fig = plt.figure()
         plt.plot(self.portfolio_sims)
         plt.ylabel('Portfolio Value($)')
         plt.xlabel('Days')
         plt.title("Monte Carlo Simulation of a stock portfolio")
         plt.show()
+        return fig
 
     def simulate(self):
         self.weights = np.random.random(len(self.meanReturns))
