@@ -16,6 +16,7 @@ class MonteCarloEstimator:
         self.initial_portfolio = initial_portfolio
         self.days_back = days_back
         self.get_time()
+        self.__numberOfPortfolios = T
         # self.get_data()
         # self.simulate()
         # self.plot_simulation()
@@ -40,7 +41,6 @@ class MonteCarloEstimator:
                 prices[i] = tmp['Close']
         self.prices = prices
         return prices
-
 
     def get_time(self):
         self.endDate = dt.datetime.now()
@@ -68,6 +68,62 @@ class MonteCarloEstimator:
             self.dailyReturns = self.meanM + np.inner(L, Z)
             self.portfolio_sims[:, m] = np.cumprod(np.inner(self.weights, self.dailyReturns.T) + 1) * self.initial_portfolio
 
+    def generate_portfolios(self, returns, covariance, risk_free_rate):
+        portfolios_allocations_df = pd.DataFrame({'Symbol': returns.index, 'MeanReturn': returns.values})
+        extra_data = pd.DataFrame({'Symbol': ['Return', 'Risk', 'SharpeRatio'], 'MeanReturn': [0, 0, 0]})
+        portfolios_allocations_df = portfolios_allocations_df.append(extra_data, ignore_index=True)
+
+        portfolio_size = len(returns.index)
+        np.random.seed(0)
+
+        equal_allocations = self.get_equal_allocations(portfolio_size)
+        portfolio_id = 'EqualAllocationPortfolio'
+        self.compute_portfolio_risk_return_sharpe_ratio(portfolio_id, equal_allocations, portfolios_allocations_df,
+                                                        returns, covariance, risk_free_rate)
+
+        # Generating portfolios
+        counter_to_print = int(self.mc_sims / 10)
+        for i in range(self.mc_sims):
+            portfolio_id = 'Portfolio_' + str(i)
+            allocations = self.get_random_allocations(portfolio_size)
+            self.compute_portfolio_risk_return_sharpe_ratio(portfolio_id, allocations, portfolios_allocations_df,
+                                                            returns, covariance, risk_free_rate)
+
+            # printing approx 10x
+            if (i % counter_to_print == 0):
+                print('Completed Generating ' + str(i) + 'Portfolios')
+
+        return portfolios_allocations_df
+
+    def compute_portfolio_risk_return_sharpe_ratio(self, portfolio_id, allocations, portfolios_allocations_df, returns,
+                                                   covariance, risk_free_rate):
+
+        # Calculate expected returns of portfolio
+        expected_returns = Calculator.calculate_portfolio_expectedreturns(returns, allocations)
+        # Calculate risk of portfolio
+        risk = Calculator.calculate_portfolio_risk(allocations, covariance)
+        # Calculate Sharpe ratio of portfolio
+        sharpe_ratio = Calculator.calculate_sharpe_ratio(risk, expected_returns, risk_free_rate)
+
+
+        portfolio_data = allocations
+        portfolio_data = np.append(portfolio_data, expected_returns)
+        portfolio_data = np.append(portfolio_data, risk)
+        portfolio_data = np.append(portfolio_data, sharpe_ratio)
+        # add data to the dataframe
+        portfolios_allocations_df[portfolio_id] = portfolio_data
+
+    def get_equal_allocations(self, portfolio_size):
+        n = float(1 / portfolio_size)
+        allocations = np.repeat(n, portfolio_size)
+        return allocations
+
+    def get_random_allocations(self, portfolio_size):
+
+        allocations = np.random.rand(portfolio_size)
+        allocations /= sum(allocations)
+        return allocations
+
 
 if __name__ == '__main__':
     stockList = ['BABA.US','NIO.US','TWTR.US','GDX.US','700.HK','3799.HK']
@@ -81,38 +137,18 @@ if __name__ == '__main__':
 
     data = m.new_get_data()
     returns = Calculator.get_returns(data)
-    expected_returns = Calculator.get_returns(returns)
-    covariance = Calculator.get_covariance(expected_returns)
-    print(covariance)
+    expected_returns = Calculator.get_expectedreturns(returns)
+    covariance = Calculator.get_covariance(returns)
+
     cp = ChartPlotter()
-    # cp.plot_prices(data)
-    # cp.plot_returns(returns)
-    # cp.plot_correlation_matrix(covariance)
+    cp.plot_prices(data)
+    cp.plot_returns(returns)
+    cp.plot_correlation_matrix(covariance)
 
-
-    print('Okay')
-"""
-    print('5. Use Monte Carlo Simulation')
-    # Generate portfolios with allocations
-    portfolios_allocations_df = mcs.generate_portfolios(expected_returns, covariance, settings.RiskFreeRate)
-    portfolio_risk_return_ratio_df = portfolios_allocation_mapper.map_to_risk_return_ratios(portfolios_allocations_df)
-
-    # Plot portfolios, print max sharpe portfolio & save data
+    portfolios_allocations_df = m.generate_portfolios(expected_returns, covariance, 0)
+    portfolio_risk_return_ratio_df = Calculator.map_to_risk_return_ratios(portfolios_allocations_df)
     cp.plot_portfolios(portfolio_risk_return_ratio_df)
-    max_sharpe_portfolio = mc.get_max_sharpe_ratio(portfolio_risk_return_ratio_df)['Portfolio']
-    max_shape_ratio_allocations = portfolios_allocations_df[['Symbol', max_sharpe_portfolio]]
-    print(max_shape_ratio_allocations)
-    fr.save_to_file(portfolios_allocations_df, 'MonteCarloPortfolios')
-    fr.save_to_file(portfolio_risk_return_ratio_df, 'MonteCarloPortfolioRatios')
 
-    print('6. Use an optimiser')
-    # Generate portfolios
-    targets = settings.get_my_targets()
-    optimiser = obj_factory.get_optimiser(targets, len(expected_returns.index))
-    portfolios_allocations_df = optimiser.generate_portfolios(expected_returns, covariance, settings.RiskFreeRate)
-    portfolio_risk_return_ratio_df = portfolios_allocation_mapper.map_to_risk_return_ratios(portfolios_allocations_df)
 
-    # plot efficient frontiers
-    cp.plot_efficient_frontier(portfolio_risk_return_ratio_df)
-    cp.show_plots()
-"""
+    plt.show()
+    print('Okay')
